@@ -32,7 +32,10 @@ export function useMemos() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'cm_memos' },
         (payload) => {
-          setMemos((prev) => [payload.new as Memo, ...prev]);
+          setMemos((prev) => {
+            if (prev.some((m) => m.id === (payload.new as Memo).id)) return prev;
+            return [payload.new as Memo, ...prev];
+          });
         }
       )
       .on(
@@ -59,24 +62,29 @@ export function useMemos() {
   }, [fetchMemos]);
 
   const createMemo = async (input: CreateMemoInput, authorName: string) => {
-    const { error } = await supabase.from('cm_memos').insert({
+    const { data, error } = await supabase.from('cm_memos').insert({
       ...input,
       author_name: authorName,
-    });
+    }).select().single();
     if (error) throw new Error(error.message);
+    if (data) setMemos((prev) => [data as Memo, ...prev]);
   };
 
   const updateMemo = async (id: string, input: UpdateMemoInput) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('cm_memos')
       .update(input)
-      .eq('id', id);
+      .eq('id', id)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
+    if (data) setMemos((prev) => prev.map((m) => (m.id === id ? (data as Memo) : m)));
   };
 
   const deleteMemo = async (id: string) => {
     const { error } = await supabase.from('cm_memos').delete().eq('id', id);
     if (error) throw new Error(error.message);
+    setMemos((prev) => prev.filter((m) => m.id !== id));
   };
 
   return { memos, loading, error, createMemo, updateMemo, deleteMemo };
