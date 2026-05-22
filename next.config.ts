@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Static export for Cloudflare Pages (all logic is client-side)
+  output: "export",
   images: {
-    // Required for Cloudflare Pages – Next.js image optimisation is not available
+    // Required when using output: 'export'
     unoptimized: true,
   },
 };
